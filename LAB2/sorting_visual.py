@@ -4,7 +4,7 @@ import random
 import time
 
 # ----------------------------
-# Instrumented Sorting Algorithms
+# Instrumented Sorting Algorithms with Highlighting
 # ----------------------------
 
 def quick_sort_gen(array):
@@ -13,11 +13,12 @@ def quick_sort_gen(array):
             pivot = arr[high]
             i = low - 1
             for j in range(low, high):
-                # Highlight indices being compared: j and high (pivot)
+                # Highlight the element at index j and the pivot (index high)
                 yield (arr.copy(), [j, high])
                 if arr[j] <= pivot:
                     i += 1
                     arr[i], arr[j] = arr[j], arr[i]
+                    # Highlight the swapped indices
                     yield (arr.copy(), [i, j])
             arr[i + 1], arr[high] = arr[high], arr[i + 1]
             yield (arr.copy(), [i+1, high])
@@ -31,15 +32,18 @@ def quick_sort_opt_gen(array):
             pivot = arr[high]
             i = low - 1
             for j in range(low, high):
+                # Highlight the element being compared to the pivot
+                yield (arr.copy(), [j, high])
                 if arr[j] <= pivot:
                     i += 1
                     arr[i], arr[j] = arr[j], arr[i]
-                    yield arr.copy()
+                    # Highlight the swap operation
+                    yield (arr.copy(), [i, j])
             arr[i + 1], arr[high] = arr[high], arr[i + 1]
-            yield arr.copy()
+            yield (arr.copy(), [i+1, high])
             yield from _quick_sort(arr, low, i)
             yield from _quick_sort(arr, i+2, high)
-    yield from _quick_sort(array, 0, len(array)-1)
+    yield from _quick_sort(array, 0, len(array) - 1)
 
 def merge_sort_gen(array):
     def _merge_sort(arr, l, r):
@@ -50,8 +54,9 @@ def merge_sort_gen(array):
             yield from merge(arr, l, m, r)
     def merge(arr, l, m, r):
         temp = arr[l:r+1]
-        i, j, k = 0, m-l+1, l
-        while i < m-l+1 and j < r-l+1:
+        i, j, k = 0, m - l + 1, l
+        while i < m - l + 1 and j < r - l + 1:
+            # Highlight the comparison between elements from the two halves
             yield (arr.copy(), [l+i, l+j])
             if temp[i] <= temp[j]:
                 arr[k] = temp[i]
@@ -61,12 +66,12 @@ def merge_sort_gen(array):
                 j += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while i < m-l+1:
+        while i < m - l + 1:
             arr[k] = temp[i]
             i += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while j < r-l+1:
+        while j < r - l + 1:
             arr[k] = temp[j]
             j += 1
             k += 1
@@ -76,8 +81,9 @@ def merge_sort_gen(array):
 def merge_sort_opt_gen(array):
     def _merge_sort(arr, l, r):
         if l < r:
+            # If already sorted, just yield the current state without highlights
             if arr[l:r+1] == sorted(arr[l:r+1]):
-                yield arr.copy()
+                yield (arr.copy(), [])
                 return
             m = (l + r) // 2
             yield from _merge_sort(arr, l, m)
@@ -85,8 +91,8 @@ def merge_sort_opt_gen(array):
             yield from merge(arr, l, m, r)
     def merge(arr, l, m, r):
         temp = arr[l:r+1]
-        i, j, k = 0, m-l+1, l
-        while i < m-l+1 and j < r-l+1:
+        i, j, k = 0, m - l + 1, l
+        while i < m - l + 1 and j < r - l + 1:
             yield (arr.copy(), [l+i, l+j])
             if temp[i] <= temp[j]:
                 arr[k] = temp[i]
@@ -96,12 +102,12 @@ def merge_sort_opt_gen(array):
                 j += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while i < m-l+1:
+        while i < m - l + 1:
             arr[k] = temp[i]
             i += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while j < r-l+1:
+        while j < r - l + 1:
             arr[k] = temp[j]
             j += 1
             k += 1
@@ -110,9 +116,14 @@ def merge_sort_opt_gen(array):
 
 def heap_sort_gen(array):
     def heapify(arr, n, i):
+        l = 2*i + 1
+        r = 2*i + 2
+        # Highlight comparisons with children (if they exist)
+        if l < n:
+            yield (arr.copy(), [i, l])
+        if r < n:
+            yield (arr.copy(), [i, r])
         largest = i
-        l = 2*i+1
-        r = 2*i+2
         if l < n and arr[l] > arr[largest]:
             largest = l
         if r < n and arr[r] > arr[largest]:
@@ -132,9 +143,14 @@ def heap_sort_gen(array):
 def heap_sort_opt_gen(array):
     def heapify(arr, n, i):
         while True:
+            l = 2*i + 1
+            r = 2*i + 2
+            # Highlight comparisons with children (if they exist)
+            if l < n:
+                yield (arr.copy(), [i, l])
+            if r < n:
+                yield (arr.copy(), [i, r])
             largest = i
-            l = 2*i+1
-            r = 2*i+2
             if l < n and arr[l] > arr[largest]:
                 largest = l
             if r < n and arr[r] > arr[largest]:
@@ -157,6 +173,8 @@ def insertion_sort_gen(arr, left, right):
     for i in range(left+1, right+1):
         key = arr[i]
         j = i-1
+        # Highlight the key being compared with its predecessor
+        yield (arr.copy(), [j, i])
         while j >= left and arr[j] > key:
             yield (arr.copy(), [j, i])
             arr[j+1] = arr[j]
@@ -168,6 +186,30 @@ def insertion_sort_gen(arr, left, right):
 def tim_sort_gen(array):
     n = len(array)
     min_run = 32
+    # Define merge function similar to merge_sort_gen
+    def merge(arr, l, m, r):
+        temp = arr[l:r+1]
+        i, j, k = 0, m - l + 1, l
+        while i < m - l + 1 and j < r - l + 1:
+            yield (arr.copy(), [l+i, l+j])
+            if temp[i] <= temp[j]:
+                arr[k] = temp[i]
+                i += 1
+            else:
+                arr[k] = temp[j]
+                j += 1
+            k += 1
+            yield (arr.copy(), [k-1])
+        while i < m - l + 1:
+            arr[k] = temp[i]
+            i += 1
+            k += 1
+            yield (arr.copy(), [k-1])
+        while j < r - l + 1:
+            arr[k] = temp[j]
+            j += 1
+            k += 1
+            yield (arr.copy(), [k-1])
     # Sort small runs with insertion sort
     for start in range(0, n, min_run):
         end = min(start+min_run-1, n-1)
@@ -188,12 +230,13 @@ def tim_sort_opt_gen(array):
         end = min(start+min_run-1, n-1)
         yield from insertion_sort_gen(array, start, end)
     def merge(arr, l, m, r):
+        # If the runs are already in order, no merge needed
         if arr[m] <= arr[m+1]:
-            yield arr.copy()
+            yield (arr.copy(), [])
             return
         temp = arr[l:r+1]
-        i, j, k = 0, m-l+1, l
-        while i < m-l+1 and j < r-l+1:
+        i, j, k = 0, m - l + 1, l
+        while i < m - l + 1 and j < r - l + 1:
             yield (arr.copy(), [l+i, l+j])
             if temp[i] <= temp[j]:
                 arr[k] = temp[i]
@@ -203,12 +246,12 @@ def tim_sort_opt_gen(array):
                 j += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while i < m-l+1:
+        while i < m - l + 1:
             arr[k] = temp[i]
             i += 1
             k += 1
             yield (arr.copy(), [k-1])
-        while j < r-l+1:
+        while j < r - l + 1:
             arr[k] = temp[j]
             j += 1
             k += 1
